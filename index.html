@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>DJ GLITCH MODE</title>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    overflow: hidden;
+}
+
+/* FOTO */
+#bg {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: filter 0.1s linear, transform 0.05s linear;
+}
+
+/* FLASH */
+.flash {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* RGB GLITCH LAYER */
+.glitch {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    mix-blend-mode: screen;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* BUTTON */
+.btn {
+    position: absolute;
+    bottom: 15%;
+    width: 100%;
+    text-align: center;
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 18px;
+    background: red;
+    border: none;
+    color: white;
+    border-radius: 10px;
+}
+</style>
+</head>
+
+<body onclick="startDJ()">
+
+<img id="bg">
+<div class="flash" id="flash"></div>
+
+<!-- RGB layers -->
+<div class="glitch" id="glitchR"></div>
+<div class="glitch" id="glitchG"></div>
+<div class="glitch" id="glitchB"></div>
+
+<div class="btn">
+    <button>START DJ 🔥</button>
+</div>
+
+<audio id="music" src="free.mp3" loop></audio>
+
+<script>
+
+// FOTO
+const images = ["1.png","2.png","3.png","4.png","5.jpg","6.jpeg","7.jpeg"];
+
+function randomImage() {
+    const r = Math.floor(Math.random() * images.length);
+    const img = images[r];
+
+    document.getElementById("bg").src = img;
+
+    // sync ke glitch layer
+    document.getElementById("glitchR").style.backgroundImage = `url(${img})`;
+    document.getElementById("glitchG").style.backgroundImage = `url(${img})`;
+    document.getElementById("glitchB").style.backgroundImage = `url(${img})`;
+}
+setInterval(randomImage, 4000);
+randomImage();
+
+// AUDIO
+let audioCtx, analyser, source, dataArray;
+
+function startDJ() {
+    const audio = document.getElementById("music");
+
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaElementSource(audio);
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        beatLoop();
+    }
+
+    audio.play();
+}
+
+// LOOP
+function beatLoop() {
+    requestAnimationFrame(beatLoop);
+
+    analyser.getByteFrequencyData(dataArray);
+
+    let bass = 0;
+    for (let i = 0; i < 10; i++) bass += dataArray[i];
+    bass /= 10;
+
+    const bg = document.getElementById("bg");
+    const flash = document.getElementById("flash");
+
+    // brightness
+    bg.style.filter = `brightness(${1 + bass/180}) contrast(${1 + bass/300})`;
+
+    // SHAKE
+    const shake = bass / 40;
+    bg.style.transform = `translate(${(Math.random()-0.5)*shake}px, ${(Math.random()-0.5)*shake}px)`;
+
+    // FLASH
+    if (bass > 120) {
+        flash.style.opacity = 0.4;
+        setTimeout(() => flash.style.opacity = 0, 40);
+
+        triggerGlitch(bass);
+    }
+}
+
+// RGB GLITCH EFFECT
+function triggerGlitch(power) {
+    const r = document.getElementById("glitchR");
+    const g = document.getElementById("glitchG");
+    const b = document.getElementById("glitchB");
+
+    const shift = power / 15;
+
+    // merah
+    r.style.filter = "brightness(2) contrast(2) sepia(1) hue-rotate(-50deg)";
+    r.style.transform = `translate(${shift}px,0)`;
+    r.style.opacity = 0.6;
+
+    // hijau
+    g.style.filter = "brightness(2) contrast(2) hue-rotate(90deg)";
+    g.style.transform = `translate(${-shift}px,0)`;
+    g.style.opacity = 0.6;
+
+    // biru
+    b.style.filter = "brightness(2) contrast(2) hue-rotate(200deg)";
+    b.style.transform = `translate(0,${shift}px)`;
+    b.style.opacity = 0.6;
+
+    // reset cepat (kedip)
+    setTimeout(() => {
+        r.style.opacity = 0;
+        g.style.opacity = 0;
+        b.style.opacity = 0;
+    }, 60);
+}
+</script>
+
+</body>
+</html>
